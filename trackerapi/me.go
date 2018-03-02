@@ -20,21 +20,31 @@ var (
 )
 
 func Me() {
-	setCredentials()
+	dat, err := ioutil.ReadFile(FileLocation)
+	check(err)
+	if dat != nil {
+		currentUser.APIToken = string(dat)
+	} else {
+		setCredentials()
+	}
 	parse(makeRequest())
+	printUserData()
 	ioutil.WriteFile(FileLocation, []byte(currentUser.APIToken), 0644)
 }
 
 func makeRequest() []byte {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", URL, nil)
-	req.SetBasicAuth(currentUser.Username, currentUser.Password)
+	if currentUser.APIToken == "" {
+		req.SetBasicAuth(currentUser.Username, currentUser.Password)
+	} else {
+		req.Header.Add("X-TrackerToken", currentUser.APIToken)
+	}
 	resp, err := client.Do(req)
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Print(err)
 	}
-	fmt.Printf("\n****\nAPI response: \n%s\n", string(body))
 	return body
 }
 
@@ -45,7 +55,33 @@ func parse(body []byte) {
 		fmt.Println("error:", err)
 	}
 
+	setUserData(meResp)
 	currentUser.APIToken = meResp.APIToken
+}
+
+func setUserData(response *MeResponse) {
+	currentUser.Username = response.Username
+	currentUser.Name = response.Name
+	currentUser.Email = response.Email
+	currentUser.Initials = response.Initials
+	currentUser.Timezone.Kind = response.Timezone.Kind
+	currentUser.Timezone.Offset = response.Timezone.Offset
+	currentUser.Timezone.OlsonName = response.Timezone.OlsonName
+	currentUser.APIToken = response.APIToken
+
+}
+func printUserData() {
+	fmt.Println("Username: ", currentUser.Username)
+	fmt.Println("Name: ", currentUser.Name)
+	fmt.Println("Email: ", currentUser.Email)
+	fmt.Println("Initials: ", currentUser.Initials)
+	fmt.Println("Timezone: ", currentUser.Timezone.Kind, currentUser.Timezone.Offset, currentUser.Timezone.OlsonName)
+
+}
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
 }
 
 func setCredentials() {
