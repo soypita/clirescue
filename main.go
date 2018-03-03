@@ -20,6 +20,13 @@ func main() {
 				trackerapi.Me()
 			},
 		},
+		{
+			Name:  "projects",
+			Usage: "prints out Tracker's projects",
+			Action: func(c *cli.Context) {
+				trackerapi.Projects()
+			},
+		},
 	}
 
 	app.Run(os.Args)
